@@ -1,0 +1,119 @@
+﻿@model FinalProject.ViewModels.EventDetailsViewModel
+@* Сторінка деталей події: опис, збереження, бронювання, видалення для ролей. *@
+@{
+    ViewData["Title"] = Model.Title;
+    var userName = User.Identity?.Name ?? "User";
+    var canBookByDate = Model.StartAt > DateTime.UtcNow;
+    var toastMessage = TempData["ToastMessage"] as string;
+}
+
+<div class="ph-wrap">
+    <header class="ph-topbar">
+        <div class="ph-topbar-inner">
+            <a class="ph-brand" asp-controller="Home" asp-action="Index">
+                PodiiHub<span class="brand-dot"></span>
+            </a>
+            <nav class="ph-nav">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="ph-profile-menu">
+                        <button type="button" class="ph-profile-pill">@userName</button>
+                        <div class="ph-profile-dropdown">
+                            <a asp-controller="Account" asp-action="Profile" class="ph-btn-ghost">Профіль</a>
+                            <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="ph-btn-ghost">Вийти</button>
+                            </form>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <a class="ph-btn-ghost" asp-controller="Account" asp-action="Login">Увійти</a>
+                    <a class="ph-btn-dark" asp-controller="Account" asp-action="Register">Реєстрація</a>
+                }
+            </nav>
+        </div>
+    </header>
+
+    <div class="ph-shell ph-shell-single">
+        <article class="ph-details-card">
+            <img class="ph-details-image" src="@Model.ImageUrl" alt="@Model.Title" />
+            <div class="ph-details-body">
+                <div class="ph-details-title-row">
+                    <h1>@Model.Title</h1>
+                    @if (User.IsInRole("Admin") || User.IsInRole("Organizer"))
+                    {
+                        <form asp-controller="Home" asp-action="DeleteEvent" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <button type="submit" class="ph-delete-icon-btn" title="Видалити подію" aria-label="Видалити подію">&#10006;</button>
+                        </form>
+                    }
+                </div>
+                <div class="ph-details-meta">
+                    <span class="ph-meta-chip ph-meta-chip-time">@Model.StartAt.ToString("dd MMM yyyy")</span>
+                    <span class="ph-meta-chip ph-meta-chip-time">@Model.StartAt.ToString("HH:mm")</span>
+                    <span class="ph-meta-chip">@Model.Location</span>
+                    <span class="ph-meta-chip">Місць: @Model.Capacity</span>
+                </div>
+                <p class="ph-details-description">@Model.Description</p>
+                <div class="ph-details-actions">
+                    <a class="ph-btn-dark ph-back-btn" asp-controller="Home" asp-action="Index">Назад до подій</a>
+                    <div class="ph-details-actions-right">
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <form asp-controller="Home" asp-action="ToggleSave" method="post" class="ph-save-form">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <button type="submit" class="ph-save-btn">@(Model.IsSaved ? "Видалити зі збереженого" : "Зберегти")</button>
+                        </form>
+
+                        @if (Model.IsBooked || (Model.Capacity > 0 && canBookByDate))
+                        {
+                            <form asp-controller="Home" asp-action="ToggleBooking" method="post" class="ph-save-form">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@Model.Id" />
+                                <button type="submit" class="ph-book-btn">@(Model.IsBooked ? "Скасувати бронювання" : "Забронювати місце")</button>
+                            </form>
+                        }
+                    }
+                    else
+                    {
+                        <a class="ph-save-btn" asp-controller="Account" asp-action="Login">Увійти щоб зберегти</a>
+                        @if (Model.Capacity > 0 && canBookByDate)
+                        {
+                            <a class="ph-book-btn" asp-controller="Account" asp-action="Login">Увійти щоб забронювати</a>
+                        }
+                    }
+                    </div>
+                </div>
+            </div>
+        </article>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(toastMessage))
+{
+    <div id="phToast" class="ph-toast">@toastMessage</div>
+}
+
+@section Scripts {
+    @if (!string.IsNullOrWhiteSpace(toastMessage))
+    {
+        <script>
+            (function () {
+                const toast = document.getElementById("phToast");
+                if (!toast) return;
+                setTimeout(function () {
+                    toast.classList.add("hide");
+                }, 2200);
+                setTimeout(function () {
+                    toast.remove();
+                }, 3000);
+            })();
+        </script>
+    }
+}
+
+

@@ -1,0 +1,107 @@
+﻿@model FinalProject.ViewModels.ProfileViewModel
+@* Профіль: дані користувача + збережені і заброньовані події. *@
+@{
+    ViewData["Title"] = "Профіль";
+    var userName = User.Identity?.Name ?? "User";
+}
+
+<div class="ph-wrap">
+    <header class="ph-topbar">
+        <div class="ph-topbar-inner">
+            <a class="ph-brand" asp-controller="Home" asp-action="Index">
+                PodiiHub<span class="brand-dot"></span>
+            </a>
+            <nav class="ph-nav">
+                <a asp-controller="Home" asp-action="Index" class="ph-btn-ghost">Назад</a>
+                <div class="ph-profile-menu">
+                    <button type="button" class="ph-profile-pill">@userName</button>
+                    <div class="ph-profile-dropdown">
+                        <a asp-controller="Account" asp-action="Profile" class="ph-btn-ghost">Профіль</a>
+                        <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="ph-btn-ghost">Вийти</button>
+                        </form>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <div class="ph-shell ph-shell-single">
+        <section class="ph-profile-card">
+            <h1>Профіль</h1>
+
+            <div class="ph-profile-grid">
+                <div class="ph-profile-item">
+                    <span class="ph-profile-label">Ім'я</span>
+                    <span class="ph-profile-value">@Model.Name</span>
+                </div>
+                <div class="ph-profile-item">
+                    <span class="ph-profile-label">Email</span>
+                    <span class="ph-profile-value">@Model.Email</span>
+                </div>
+                <div class="ph-profile-item">
+                    <span class="ph-profile-label">Роль</span>
+                    <span class="ph-profile-value">@Model.Role</span>
+                </div>
+            </div>
+
+            <div class="ph-profile-section">
+                <h2>Збережені події</h2>
+                @if (Model.SavedEvents.Count == 0)
+                {
+                    <p>Поки порожньо: ти ще не зберіг жодної події.</p>
+                }
+                else
+                {
+                    <ul class="ph-saved-events-list">
+                        @foreach (var savedEvent in Model.SavedEvents)
+                        {
+                            <li class="ph-saved-events-item">
+                                <a asp-controller="Home" asp-action="Details" asp-route-id="@savedEvent.EventId" class="ph-saved-events-title">
+                                    @savedEvent.Title
+                                </a>
+                                <span class="ph-saved-events-meta">
+                                    @savedEvent.StartAt.ToString("dd MMM yyyy HH:mm") · @savedEvent.Location
+                                </span>
+                                <span class="ph-saved-events-meta">
+                                    Збережено: @savedEvent.SavedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+
+            <div class="ph-profile-section">
+                <h2>Мої квитки / Мої події</h2>
+                @if (Model.BookedEvents.Count == 0)
+                {
+                    <p>Поки порожньо: ти ще не бронював подій.</p>
+                }
+                else
+                {
+                    <ul class="ph-saved-events-list">
+                        @foreach (var bookedEvent in Model.BookedEvents)
+                        {
+                            <li class="ph-saved-events-item">
+                                <a asp-controller="Home" asp-action="Details" asp-route-id="@bookedEvent.EventId" class="ph-saved-events-title">
+                                    @bookedEvent.Title
+                                </a>
+                                <span class="ph-saved-events-meta">
+                                    @bookedEvent.StartAt.ToString("dd MMM yyyy HH:mm") · @bookedEvent.Location
+                                </span>
+                                <span class="ph-saved-events-meta">
+                                    Заброньовано: @bookedEvent.BookedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </section>
+    </div>
+</div>
+
+
+

@@ -1,0 +1,165 @@
+﻿@model FinalProject.ViewModels.HomeIndexViewModel
+@* Головна сторінка: пошук, список подій, кнопка Завантажити ще, блок найближчих подій. *@
+@{
+    ViewData["Title"] = "Головна";
+    var userName = User.Identity?.Name ?? "User";
+}
+
+<div class="ph-wrap">
+    <header class="ph-topbar">
+        <div class="ph-topbar-inner">
+            <a class="ph-brand" asp-controller="Home" asp-action="Index">
+                PodiiHub<span class="brand-dot"></span>
+            </a>
+            <nav class="ph-nav">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="ph-profile-menu">
+                        <button type="button" class="ph-profile-pill">@userName</button>
+                        <div class="ph-profile-dropdown">
+                            <a asp-controller="Account" asp-action="Profile" class="ph-btn-ghost">Профіль</a>
+                            @if (User.IsInRole("admin"))
+                            {
+                                <a asp-controller="Admin" asp-action="Index" class="ph-btn-ghost">Admin</a>
+                            }
+                            <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="ph-btn-ghost">Вийти</button>
+                            </form>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <a class="ph-btn-ghost" asp-controller="Account" asp-action="Login">Увійти</a>
+                }
+            </nav>
+        </div>
+    </header>
+
+    <div class="ph-shell">
+        <section class="ph-hero">
+            <h1>Події, які <em>хочеться</em> відвідати</h1>
+            <p>Добірка актуальних конференцій, самітів і мітапів з технологій, продукту та бізнесу.</p>
+        </section>
+
+        <form class="ph-search-row" method="get" asp-controller="Home" asp-action="Index">
+            <input type="text" name="searching" value="@Model.SearchQuery" placeholder="Пошук подій за назвою..." />
+            <button class="ph-btn-search" type="submit">Пошук</button>
+        </form>
+
+        <main class="ph-main">
+            <p class="ph-section-label">Останні події</p>
+
+            <div id="eventList" class="ph-event-list">
+                @await Html.PartialAsync("EventsChunk", new FinalProject.ViewModels.EventsChunkViewModel
+                {
+                    Events = Model.Events,
+                    NextSkip = Model.NextSkip,
+                    HasMore = Model.HasMore
+                })
+            </div>
+
+            @if (Model.HasMore)
+            {
+                <div class="ph-load-more-wrap">
+                    <button id="loadMoreBtn"
+                            type="button"
+                            class="ph-load-more-btn"
+                            data-skip="@Model.NextSkip"
+                            data-take="@Model.Take"
+                            data-searching="@Model.SearchQuery">
+                        Завантажити ще
+                    </button>
+                </div>
+            }
+        </main>
+
+        <aside class="ph-sidebar">
+            <div class="ph-sidebar-block">
+                <p class="ph-sidebar-title">Найближчі події</p>
+                <ul class="ph-sidebar-upcoming">
+                    @foreach (var upcomingEvent in Model.UpcomingEvents)
+                    {
+                        <li>
+                            <span class="sui-date">@upcomingEvent.StartAt.ToString("dd MMM yyyy")</span>
+                            <a class="sui-name-link"
+                               asp-controller="Home"
+                               asp-action="Details"
+                               asp-route-id="@upcomingEvent.Id">
+                                <span class="sui-name">@upcomingEvent.Title</span>
+                            </a>
+                            <span class="sui-loc">@upcomingEvent.Location</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </aside>
+
+        <footer class="ph-footer">
+            <span>© 2026 PodiiHub</span>
+            <span>Всі події України</span>
+        </footer>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const loadMoreBtn = document.getElementById("loadMoreBtn");
+            const eventList = document.getElementById("eventList");
+            if (!loadMoreBtn || !eventList) return;
+
+            let loading = false;
+
+            loadMoreBtn.addEventListener("click", async function () {
+                if (loading) return;
+                loading = true;
+                loadMoreBtn.disabled = true;
+                loadMoreBtn.textContent = "Завантаження...";
+
+                const skip = loadMoreBtn.dataset.skip || "0";
+                const take = loadMoreBtn.dataset.take || "8";
+                const searching = loadMoreBtn.dataset.searching || "";
+                const encodedSearching = encodeURIComponent(searching);
+                const searchingQuery = searching ? `&searching=${encodedSearching}` : "";
+
+                try {
+                    const response = await fetch(`/Home/LoadMore?skip=${skip}&take=${take}${searchingQuery}`, { method: "GET" });
+                    if (!response.ok) throw new Error("Load failed");
+
+                    const html = await response.text();
+                    const temp = document.createElement("div");
+                    temp.innerHTML = html;
+
+                    const chunkMeta = temp.querySelector(".ph-chunk-meta");
+                    temp.querySelectorAll(".ph-event-row").forEach(function (card) {
+                        eventList.appendChild(card);
+                    });
+
+                    if (!chunkMeta) { loadMoreBtn.remove(); return; }
+
+                    const hasMore = chunkMeta.dataset.hasMore === "true";
+                    const nextSkip = chunkMeta.dataset.nextSkip || skip;
+
+                    loadMoreBtn.dataset.skip = nextSkip;
+
+                    if (!hasMore) {
+                        loadMoreBtn.remove();
+                    } else {
+                        loadMoreBtn.disabled = false;
+                        loadMoreBtn.textContent = "Завантажити ще";
+                    }
+                } catch {
+                    loadMoreBtn.disabled = false;
+                    loadMoreBtn.textContent = "Завантажити ще";
+                } finally {
+                    loading = false;
+                }
+            });
+        })();
+    </script>
+}
+
+
+

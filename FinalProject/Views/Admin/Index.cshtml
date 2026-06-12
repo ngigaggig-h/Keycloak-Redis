@@ -1,0 +1,138 @@
+﻿@model FinalProject.ViewModels.AdminPageViewModel
+@* Адмін-сторінка: створення події і видача ролі Organizer. *@
+@{
+    ViewData["Title"] = "Admin";
+    var userName = User.Identity?.Name ?? "User";
+}
+
+<div class="ph-wrap">
+    <header class="ph-topbar">
+        <div class="ph-topbar-inner">
+            <a class="ph-brand" asp-controller="Home" asp-action="Index">
+                PodiiHub<span class="brand-dot"></span>
+            </a>
+            <nav class="ph-nav">
+                <div class="ph-profile-menu">
+                    <button type="button" class="ph-profile-pill">@userName</button>
+                    <div class="ph-profile-dropdown">
+                        <a asp-controller="Home" asp-action="Index" class="ph-btn-ghost">Головна</a>
+                        <a asp-controller="Account" asp-action="Profile" class="ph-btn-ghost">Профіль</a>
+                        <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="ph-btn-ghost">Вийти</button>
+                        </form>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <div class="ph-shell ph-shell-single">
+        <section class="ph-profile-card">
+            <h1>Admin панель</h1>
+
+            @if (TempData["AdminMessage"] != null)
+            {
+                <p>@TempData["AdminMessage"]</p>
+            }
+
+            <div class="ph-profile-section">
+                <h2>Додати подію</h2>
+                <form asp-controller="Admin" asp-action="AddEvent" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-2">
+                        <label asp-for="Title"></label>
+                        <input asp-for="Title" class="form-control" />
+                        <span asp-validation-for="Title" class="text-danger"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="TitleDescription"></label>
+                        <input asp-for="TitleDescription" class="form-control" />
+                        <span asp-validation-for="TitleDescription" class="text-danger"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="Description"></label>
+                        <textarea asp-for="Description" class="form-control"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="Location"></label>
+                        <input asp-for="Location" class="form-control" />
+                        <span asp-validation-for="Location" class="text-danger"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="StartAt">Дата і час початку</label>
+                        <input asp-for="StartAt" type="datetime-local" class="form-control" />
+                        <span asp-validation-for="StartAt" class="text-danger"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="Capacity"></label>
+                        <input asp-for="Capacity" type="number" class="form-control" />
+                        <span asp-validation-for="Capacity" class="text-danger"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="ImageUrl"></label>
+                        <input asp-for="ImageUrl" class="form-control" />
+                        <span asp-validation-for="ImageUrl" class="text-danger"></span>
+                    </div>
+                    <button type="submit" class="ph-btn-dark">Створити подію</button>
+                </form>
+            </div>
+
+            <div class="ph-profile-section">
+                <h2>Користувачі</h2>
+                @if (Model.Users.Count == 0)
+                {
+                    <p>Користувачів ще нема.</p>
+                }
+                else
+                {
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Id</th>
+                                <th>Ім'я</th>
+                                <th>Email</th>
+                                <th>Роль</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var user in Model.Users)
+                        {
+                            <tr>
+                                <td>@user.Id</td>
+                                <td>@user.Name</td>
+                                <td>@user.Email</td>
+                                <td>@user.Role</td>
+                                <td>
+                                    @if (user.Role == "Organizer" || user.Role == "Admin")
+                                    {
+                                        <span>Вже має роль</span>
+                                    }
+                                    else
+                                    {
+                                        <form asp-controller="Admin" asp-action="MakeOrganizer" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="userId" value="@user.Id" />
+                                            <button type="submit" class="ph-btn-ghost">Дати організатора</button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
+
+
+
