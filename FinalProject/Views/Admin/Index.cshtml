@@ -75,6 +75,15 @@
                         <input asp-for="ImageUrl" class="form-control" />
                         <span asp-validation-for="ImageUrl" class="text-danger"></span>
                     </div>
+                    <div class="mb-2">
+                        <label asp-for="CategoryId"></label>
+                        <select asp-for="CategoryId"
+                                class="form-select"
+                                asp-items="@(new Microsoft.AspNetCore.Mvc.Rendering.SelectList(Model.Categories, nameof(FinalProject.ViewModels.CategoryFilterOptionViewModel.Id), nameof(FinalProject.ViewModels.CategoryFilterOptionViewModel.Name)))">
+                            <option value="">Оберіть категорію</option>
+                        </select>
+                        <span asp-validation-for="CategoryId" class="text-danger"></span>
+                    </div>
                     <button type="submit" class="ph-btn-dark">Створити подію</button>
                 </form>
             </div>

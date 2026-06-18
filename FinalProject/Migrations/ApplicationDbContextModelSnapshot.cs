@@ -49,6 +49,32 @@ namespace FinalProject.Migrations
                     b.ToTable("BookedEvents");
                 });
 
+            modelBuilder.Entity("FinalProject.Models.Category", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("Categories");
+                });
+
             modelBuilder.Entity("FinalProject.Models.Event", b =>
                 {
                     b.Property<int>("Id")
@@ -58,6 +84,9 @@ namespace FinalProject.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("Capacity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
                     b.Property<string>("Description")
@@ -92,6 +121,8 @@ namespace FinalProject.Migrations
                         .HasColumnType("nvarchar(220)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
 
                     b.HasIndex("OrganizerId");
 
@@ -181,11 +212,19 @@ namespace FinalProject.Migrations
 
             modelBuilder.Entity("FinalProject.Models.Event", b =>
                 {
+                    b.HasOne("FinalProject.Models.Category", "Category")
+                        .WithMany("Events")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("FinalProject.Models.User", "Organizer")
                         .WithMany()
                         .HasForeignKey("OrganizerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Category");
 
                     b.Navigation("Organizer");
                 });
@@ -211,7 +250,14 @@ namespace FinalProject.Migrations
 
             modelBuilder.Entity("FinalProject.Models.Event", b =>
                 {
+                    b.Navigation("Category");
+
                     b.Navigation("SavedByUsers");
+                });
+
+            modelBuilder.Entity("FinalProject.Models.Category", b =>
+                {
+                    b.Navigation("Events");
                 });
 #pragma warning restore 612, 618
         }

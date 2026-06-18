@@ -8,7 +8,10 @@
              src="@eventCard.ImageUrl"
              alt="@eventCard.Title" />
         <div class="ph-event-body">
-            <div class="ph-event-title">@eventCard.Title</div>
+            <div class="ph-event-title-row">
+                <div class="ph-event-title">@eventCard.Title</div>
+                <span class="ph-event-category">@eventCard.CategoryName</span>
+            </div>
             <div class="ph-event-desc">@eventCard.TitleDescription</div>
             <div class="ph-event-foot">
                 <div class="ph-event-meta">

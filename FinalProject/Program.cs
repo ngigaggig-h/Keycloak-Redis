@@ -17,7 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Додаємо MVC-контролери + views (Razor).
 builder.Services.AddControllersWithViews();
 
-// Беремо рядок підключення до SQLite з appsettings.json.
+// Беремо рядок підключення до SQL Server / LocalDB з appsettings.json.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 // Реєструємо EF Core контекст.
@@ -74,6 +74,8 @@ builder.Services.AddAuthentication(options =>
 });
 
 var app = builder.Build();
+
+await ApplicationDbInitializer.InitializeAsync(app.Services);
 
 // HTTP pipeline (порядок важливий).
 app.UseHttpsRedirection();

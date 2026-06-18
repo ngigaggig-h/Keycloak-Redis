@@ -44,8 +44,19 @@
         </section>
 
         <form class="ph-search-row" method="get" asp-controller="Home" asp-action="Index">
-            <input type="text" name="searching" value="@Model.SearchQuery" placeholder="Пошук подій за назвою..." />
-            <button class="ph-btn-search" type="submit">Пошук</button>
+            <div class="ph-search-input-wrap">
+                <input type="text" name="searching" value="@Model.SearchQuery" placeholder="Пошук подій за назвою..." />
+            </div>
+            <div class="ph-search-actions">
+                <button class="ph-btn-search" type="submit">Пошук</button>
+                <button class="ph-btn-filter" type="button" id="openFiltersBtn">Фільтри</button>
+            </div>
+            <input type="hidden" name="sortBy" value="@Model.SortBy" />
+            <input type="hidden" name="onlyUpcoming" value="@Model.OnlyUpcoming.ToString().ToLowerInvariant()" />
+            @foreach (var selectedCategoryId in Model.SelectedCategoryIds)
+            {
+                <input type="hidden" name="categoryIds" value="@selectedCategoryId" />
+            }
         </form>
 
         <main class="ph-main">
@@ -68,7 +79,10 @@
                             class="ph-load-more-btn"
                             data-skip="@Model.NextSkip"
                             data-take="@Model.Take"
-                            data-searching="@Model.SearchQuery">
+                            data-searching="@Model.SearchQuery"
+                            data-category-ids="@string.Join(",", Model.SelectedCategoryIds)"
+                            data-sort-by="@Model.SortBy"
+                            data-only-upcoming="@Model.OnlyUpcoming.ToString().ToLowerInvariant()">
                         Завантажити ще
                     </button>
                 </div>
@@ -103,11 +117,110 @@
     </div>
 </div>
 
+<div id="filtersModal" class="ph-modal-backdrop" aria-hidden="true">
+    <div class="ph-modal-card" role="dialog" aria-modal="true" aria-labelledby="filtersModalTitle">
+        <div class="ph-modal-head">
+            <div>
+                <p class="ph-sidebar-title" id="filtersModalTitle">Фільтри</p>
+                <p class="ph-sidebar-subtitle">Вибери кілька категорій, порядок сортування та часовий фільтр.</p>
+            </div>
+            <button type="button" class="ph-modal-close" id="closeFiltersBtn" aria-label="Закрити">×</button>
+        </div>
+
+        <form method="get" asp-controller="Home" asp-action="Index" class="ph-modal-form">
+            <input type="hidden" name="searching" value="@Model.SearchQuery" />
+
+            <div class="ph-modal-section">
+                <span class="ph-modal-label">Категорії</span>
+                <div class="ph-modal-choice-list ph-modal-choice-list-categories">
+                    @foreach (var category in Model.Categories)
+                    {
+                        var isSelected = Model.SelectedCategoryIds.Contains(category.Id);
+                        <label class="ph-modal-choice-chip @(isSelected ? "ph-modal-choice-chip-selected" : string.Empty)">
+                            <input type="checkbox" name="categoryIds" value="@category.Id" @(isSelected ? "checked" : null) />
+                            <span>@category.Name</span>
+                        </label>
+                    }
+                </div>
+            </div>
+
+            <div class="ph-modal-section">
+                <span class="ph-modal-label">Сортування</span>
+                <div class="ph-modal-choice-list">
+                    <label class="ph-modal-choice-chip @(Model.SortBy == "date" ? "ph-modal-choice-chip-selected" : string.Empty)">
+                        <input type="radio" name="sortBy" value="date" @(Model.SortBy == "date" ? "checked" : null) />
+                        <span>За датою</span>
+                    </label>
+                    <label class="ph-modal-choice-chip @(Model.SortBy == "title" ? "ph-modal-choice-chip-selected" : string.Empty)">
+                        <input type="radio" name="sortBy" value="title" @(Model.SortBy == "title" ? "checked" : null) />
+                        <span>За назвою</span>
+                    </label>
+                    <label class="ph-modal-choice-chip @(Model.SortBy == "capacity" ? "ph-modal-choice-chip-selected" : string.Empty)">
+                        <input type="radio" name="sortBy" value="capacity" @(Model.SortBy == "capacity" ? "checked" : null) />
+                        <span>За вільними місцями</span>
+                    </label>
+                </div>
+            </div>
+
+            <label class="ph-modal-checkbox">
+                <input type="checkbox" name="onlyUpcoming" value="true" @(Model.OnlyUpcoming ? "checked" : null) />
+                <span>Показувати лише майбутні події</span>
+            </label>
+
+            <div class="ph-modal-actions">
+                <a asp-controller="Home"
+                   asp-action="Index"
+                   asp-route-searching="@Model.SearchQuery"
+                   class="ph-sidebar-action ph-sidebar-action-ghost">Скинути</a>
+                <button type="submit" class="ph-sidebar-action ph-sidebar-action-primary">Застосувати</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         (function () {
             const loadMoreBtn = document.getElementById("loadMoreBtn");
             const eventList = document.getElementById("eventList");
+            const modal = document.getElementById("filtersModal");
+            const openFiltersBtn = document.getElementById("openFiltersBtn");
+            const closeFiltersBtn = document.getElementById("closeFiltersBtn");
+
+            if (openFiltersBtn && modal) {
+                openFiltersBtn.addEventListener("click", function () {
+                    modal.classList.add("is-open");
+                    modal.setAttribute("aria-hidden", "false");
+                    document.body.classList.add("ph-modal-open");
+                });
+            }
+
+            if (closeFiltersBtn && modal) {
+                closeFiltersBtn.addEventListener("click", function () {
+                    modal.classList.remove("is-open");
+                    modal.setAttribute("aria-hidden", "true");
+                    document.body.classList.remove("ph-modal-open");
+                });
+            }
+
+            if (modal) {
+                modal.addEventListener("click", function (event) {
+                    if (event.target === modal) {
+                        modal.classList.remove("is-open");
+                        modal.setAttribute("aria-hidden", "true");
+                        document.body.classList.remove("ph-modal-open");
+                    }
+                });
+            }
+
+            document.addEventListener("keydown", function (event) {
+                if (event.key === "Escape" && modal && modal.classList.contains("is-open")) {
+                    modal.classList.remove("is-open");
+                    modal.setAttribute("aria-hidden", "true");
+                    document.body.classList.remove("ph-modal-open");
+                }
+            });
+
             if (!loadMoreBtn || !eventList) return;
 
             let loading = false;
@@ -121,11 +234,22 @@
                 const skip = loadMoreBtn.dataset.skip || "0";
                 const take = loadMoreBtn.dataset.take || "8";
                 const searching = loadMoreBtn.dataset.searching || "";
+                const categoryIds = (loadMoreBtn.dataset.categoryIds || "")
+                    .split(",")
+                    .map(function (value) { return value.trim(); })
+                    .filter(function (value) { return value.length > 0; });
+                const sortBy = loadMoreBtn.dataset.sortBy || "date";
+                const onlyUpcoming = loadMoreBtn.dataset.onlyUpcoming || "false";
                 const encodedSearching = encodeURIComponent(searching);
                 const searchingQuery = searching ? `&searching=${encodedSearching}` : "";
+                const categoryQuery = categoryIds
+                    .map(function (value) { return `&categoryIds=${encodeURIComponent(value)}`; })
+                    .join("");
+                const sortByQuery = sortBy ? `&sortBy=${encodeURIComponent(sortBy)}` : "";
+                const onlyUpcomingQuery = onlyUpcoming === "true" ? "&onlyUpcoming=true" : "";
 
                 try {
-                    const response = await fetch(`/Home/LoadMore?skip=${skip}&take=${take}${searchingQuery}`, { method: "GET" });
+                    const response = await fetch(`/Home/LoadMore?skip=${skip}&take=${take}${searchingQuery}${categoryQuery}${sortByQuery}${onlyUpcomingQuery}`, { method: "GET" });
                     if (!response.ok) throw new Error("Load failed");
 
                     const html = await response.text();
@@ -157,6 +281,19 @@
                     loading = false;
                 }
             });
+
+            document.querySelectorAll(".ph-modal-choice-chip input").forEach(function (input) {
+                input.addEventListener("change", function () {
+                    if (input.type === "radio") {
+                        document.querySelectorAll("input[name='" + input.name + "']").forEach(function (radio) {
+                            radio.closest(".ph-modal-choice-chip")?.classList.toggle("ph-modal-choice-chip-selected", radio.checked);
+                        });
+                    } else {
+                        input.closest(".ph-modal-choice-chip")?.classList.toggle("ph-modal-choice-chip-selected", input.checked);
+                    }
+                });
+            });
+
         })();
     </script>
 }

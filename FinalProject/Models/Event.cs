@@ -30,6 +30,9 @@ public class Event
     [StringLength(500)]
     public string? ImageUrl { get; set; }
 
+    public int CategoryId { get; set; }
+    public Category? Category { get; set; }
+
     public string OrganizerId { get; set; } = string.Empty;
     public User? Organizer { get; set; }
 

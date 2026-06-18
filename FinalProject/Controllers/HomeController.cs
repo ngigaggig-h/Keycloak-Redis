@@ -28,7 +28,7 @@ public class HomeController : Controller
         _dbContext = dbContext;
     }
 
-    public async Task<IActionResult> Index(int skip = 0, int take = 8, string? searching = null)
+    public async Task<IActionResult> Index(int skip = 0, int take = 8, string? searching = null, int[]? categoryIds = null, string? sortBy = null, bool onlyUpcoming = false)
     {
         // Головна сторінка з пагінацією і пошуком.
         // skip/take приходять із query string.
@@ -36,15 +36,26 @@ public class HomeController : Controller
         if (take < 8) take = 8;
         if (take > 64) take = 64;
 
-        var eventsFromDb = await _eventService.GetLatestEventsAsync(skip, take, searching);
+        var normalizedSortBy = string.IsNullOrWhiteSpace(sortBy) ? "date" : sortBy;
+        var selectedCategoryIds = categoryIds?.Distinct().ToArray() ?? [];
+        var eventsFromDb = await _eventService.GetLatestEventsAsync(skip, take, searching, selectedCategoryIds, normalizedSortBy, onlyUpcoming);
         var upcomingEvents = await _eventService.GetUpcomingEvents(3);
-        var totalEventsCount = await _eventService.GetEventsCount(searching);
+        var totalEventsCount = await _eventService.GetEventsCount(searching, selectedCategoryIds, onlyUpcoming);
+        var categories = await _eventService.GetCategoriesAsync();
 
         var pageModel = new HomeIndexViewModel
         {
             Events = eventsFromDb.Select(ToCard).ToList(),
             UpcomingEvents = upcomingEvents.Select(ToUpcoming).ToList(),
             SearchQuery = searching ?? string.Empty,
+            SelectedCategoryIds = selectedCategoryIds.ToList(),
+            SortBy = normalizedSortBy,
+            OnlyUpcoming = onlyUpcoming,
+            Categories = categories.Select(category => new CategoryFilterOptionViewModel
+            {
+                Id = category.Id,
+                Name = category.Name
+            }).ToList(),
             Skip = skip,
             Take = take,
             TotalCount = totalEventsCount
@@ -54,7 +65,7 @@ public class HomeController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> LoadMore(int skip = 0, int take = 8, string? searching = null)
+    public async Task<IActionResult> LoadMore(int skip = 0, int take = 8, string? searching = null, int[]? categoryIds = null, string? sortBy = null, bool onlyUpcoming = false)
     {
         // Дія для кнопки "Завантажити ще".
         // Повертає не повну сторінку, а partial view з наступною порцією карток.
@@ -67,8 +78,10 @@ public class HomeController : Controller
         if (take > 64) 
             take = 64;
 
-        var eventsFromDb = await _eventService.GetLatestEventsAsync(skip, take, searching);
-        var totalEventsCount = await _eventService.GetEventsCount(searching);
+        var normalizedSortBy = string.IsNullOrWhiteSpace(sortBy) ? "date" : sortBy;
+        var selectedCategoryIds = categoryIds?.Distinct().ToArray() ?? [];
+        var eventsFromDb = await _eventService.GetLatestEventsAsync(skip, take, searching, selectedCategoryIds, normalizedSortBy, onlyUpcoming);
+        var totalEventsCount = await _eventService.GetEventsCount(searching, selectedCategoryIds, onlyUpcoming);
 
         var chunkModel = new EventsChunkViewModel
         {
@@ -112,6 +125,7 @@ public class HomeController : Controller
             StartAt = eventData.StartAt,
             Capacity = eventData.Capacity,
             ImageUrl = eventData.ImageUrl,
+            CategoryName = eventData.CategoryName,
             IsSaved = isSaved,
             IsBooked = isBooked
         };
@@ -228,7 +242,8 @@ public class HomeController : Controller
             Location = eventData.Location,
             StartAt = eventData.StartAt,
             Capacity = eventData.Capacity,
-            ImageUrl = eventData.ImageUrl
+            ImageUrl = eventData.ImageUrl,
+            CategoryName = eventData.CategoryName
         };
     }
 

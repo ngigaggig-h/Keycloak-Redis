@@ -12,6 +12,7 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<Category> Categories => Set<Category>();
     public DbSet<Event> Events => Set<Event>();
     public DbSet<SavedEvent> SavedEvents => Set<SavedEvent>();
     public DbSet<BookedEvent> BookedEvents => Set<BookedEvent>();
@@ -33,5 +34,15 @@ public class ApplicationDbContext : DbContext
             .WithMany() // або .WithMany(u => u.SavedEvents)
             .HasForeignKey(se => se.UserId)
             .OnDelete(DeleteBehavior.Restrict); // Забороняємо каскад
+
+        modelBuilder.Entity<Category>()
+            .HasIndex(category => category.Slug)
+            .IsUnique();
+
+        modelBuilder.Entity<Event>()
+            .HasOne(eventEntity => eventEntity.Category)
+            .WithMany(category => category.Events)
+            .HasForeignKey(eventEntity => eventEntity.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

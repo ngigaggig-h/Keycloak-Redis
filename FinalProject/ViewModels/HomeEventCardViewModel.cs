@@ -11,4 +11,5 @@ public class HomeEventCardViewModel
     public DateTime StartAt { get; set; }
     public int Capacity { get; set; }
     public string? ImageUrl { get; set; }
+    public string CategoryName { get; set; } = string.Empty;
 }

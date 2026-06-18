@@ -31,6 +31,11 @@ public class AdminPageViewModel
     [StringLength(500)]
     public string? ImageUrl { get; set; }
 
+    [Required]
+    [Display(Name = "Категорія")]
+    public int? CategoryId { get; set; }
+
+    public List<CategoryFilterOptionViewModel> Categories { get; set; } = new();
     public List<AdminUserRowViewModel> Users { get; set; } = new();
 }
 

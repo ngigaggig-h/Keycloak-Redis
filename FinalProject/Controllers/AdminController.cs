@@ -34,6 +34,7 @@ public class AdminController : Controller
         // - порожній підмаршрут відносно [Route("admin")].
         // Підсумковий URL цієї дії: /admin
         var model = new AdminPageViewModel();
+        await FillCategories(model);
         await FillUsers(model);
         return View(model);
     }
@@ -47,6 +48,14 @@ public class AdminController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddEvent(AdminPageViewModel model)
     {
+        await FillCategories(model);
+        await FillUsers(model);
+
+        if (!ModelState.IsValid)
+        {
+            return View("Index", model);
+        }
+
         // 1. Отримуємо унікальний ID користувача з токена Keycloak
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
@@ -78,7 +87,13 @@ public class AdminController : Controller
         var newEvent = new Event
         {
             Title = model.Title,
+            TitleDescription = model.TitleDescription,
             Description = model.Description,
+            Location = model.Location,
+            StartAt = model.StartAt ?? DateTime.UtcNow,
+            Capacity = model.Capacity,
+            ImageUrl = model.ImageUrl,
+            CategoryId = model.CategoryId!.Value,
             OrganizerId = userId // Тепер цей ID точно існує в базі!
         };
 
@@ -107,6 +122,18 @@ public class AdminController : Controller
 
         TempData["AdminMessage"] = "Роль оновлено";
         return RedirectToAction(nameof(Index));
+    }
+
+    private async Task FillCategories(AdminPageViewModel model)
+    {
+        model.Categories = await _dbContext.Categories
+            .OrderBy(category => category.Name)
+            .Select(category => new CategoryFilterOptionViewModel
+            {
+                Id = category.Id,
+                Name = category.Name
+            })
+            .ToListAsync();
     }
 
     private async Task FillUsers(AdminPageViewModel model)
