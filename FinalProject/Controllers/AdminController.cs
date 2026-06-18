@@ -11,8 +11,9 @@ namespace FinalProject.Controllers;
 // Контролер адмін-панелі.
 // Цей контролер відповідає за просте адміністрування у межах курсового:
 // 1) створення події;
-// 2) перегляд списку користувачів;
-// 3) видача ролі Organizer.
+// 2) перегляд списку користувачів та подій;
+// 3) редагування та видалення подій (CRUD);
+// 4) видача ролі Organizer.
 // Весь контролер закритий атрибутом [Authorize(Roles = "Admin")],
 // тобто будь-яка дія всередині доступна тільки адміну.
 [Authorize(Roles = "admin")]
@@ -35,6 +36,12 @@ public class AdminController : Controller
         // Підсумковий URL цієї дії: /admin
         var model = new AdminPageViewModel();
         await FillUsers(model);
+
+        // Підтягуємо список подій з бази даних для таблиці керування (CRUD)
+        model.Events = await _dbContext.Events
+            .OrderByDescending(e => e.Id)
+            .ToListAsync();
+
         return View(model);
     }
 
@@ -86,6 +93,73 @@ public class AdminController : Controller
         await _dbContext.SaveChangesAsync(); // Зберігаємо подію
 
         return RedirectToAction("Index");
+    }
+
+    // [HttpGet("edit-event/{id:int}")] означає:
+    // - HTTP метод: GET;
+    // - підмаршрут "edit-event/{id}" відносно [Route("admin")].
+    // Підсумковий URL цієї дії: GET /admin/edit-event/{id}
+    // Сторінка відображення форми для редагування конкретної події.
+    [HttpGet("edit-event/{id:int}")]
+    public async Task<IActionResult> EditEvent(int id)
+    {
+        var ev = await _dbContext.Events.FirstOrDefaultAsync(e => e.Id == id);
+        if (ev == null)
+        {
+            return NotFound("Подію не знайдено у базі даних.");
+        }
+        return View(ev);
+    }
+
+    // [HttpPost("edit-event/{id:int}")] означає:
+    // - HTTP метод: POST;
+    // - підмаршрут "edit-event/{id}" відносно [Route("admin")].
+    // Підсумковий URL цієї дії: POST /admin/edit-event/{id}
+    // Зберігає оновлені текстові поля події назад до бази даних.
+    [HttpPost("edit-event/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditEvent(int id, Event modifiedEvent)
+    {
+        if (id != modifiedEvent.Id)
+        {
+            return BadRequest();
+        }
+
+        var dbEvent = await _dbContext.Events.FirstOrDefaultAsync(e => e.Id == id);
+        if (dbEvent == null)
+        {
+            return NotFound("Подію для оновлення не знайдено.");
+        }
+
+        // Оновлюємо текстові поля, які є у вашій моделі Event
+        dbEvent.Title = modifiedEvent.Title;
+        dbEvent.Description = modifiedEvent.Description;
+
+        _dbContext.Events.Update(dbEvent);
+        await _dbContext.SaveChangesAsync(); // Зберігаємо оновлені дані
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    // [HttpPost("delete-event/{id:int}")] означає:
+    // - HTTP метод: POST;
+    // - підмаршрут "delete-event/{id}" відносно [Route("admin")].
+    // Підсумковий URL цієї дії: POST /admin/delete-event/{id}
+    // Повністю видаляє вибрану подію з бази даних за її унікальним ID.
+    [HttpPost("delete-event/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteEvent(int id)
+    {
+        var ev = await _dbContext.Events.FirstOrDefaultAsync(e => e.Id == id);
+        if (ev == null)
+        {
+            return NotFound("Подію для видалення не знайдено.");
+        }
+
+        _dbContext.Events.Remove(ev);
+        await _dbContext.SaveChangesAsync(); // Видаляємо подію з бази
+
+        return RedirectToAction(nameof(Index));
     }
 
     [HttpPost("make-organizer")]

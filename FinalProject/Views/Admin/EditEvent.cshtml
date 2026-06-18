@@ -1,0 +1,66 @@
+﻿@model FinalProject.Models.Event
+@* Сторінка редагування конкретної події в стилі PodiiHub. *@
+@{
+    ViewData["Title"] = "Редагування події";
+    var userName = User.Identity?.Name ?? "User";
+}
+
+<div class="ph-wrap">
+    <header class="ph-topbar">
+        <div class="ph-topbar-inner">
+            <a class="ph-brand" asp-controller="Home" asp-action="Index">
+                PodiiHub<span class="brand-dot"></span>
+            </a>
+            <nav class="ph-nav">
+                <div class="ph-profile-menu">
+                    <button type="button" class="ph-profile-pill">@userName</button>
+                    <div class="ph-profile-dropdown">
+                        <a asp-controller="Home" asp-action="Index" class="ph-btn-ghost">Головна</a>
+                        <a asp-controller="Admin" asp-action="Index" class="ph-btn-ghost">Адмінка</a>
+                        <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="ph-btn-ghost">Вийти</button>
+                        </form>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <div class="ph-shell ph-shell-single">
+        <section class="ph-profile-card" style="max-width: 600px; margin: 0 auto;">
+            <h1>Редагувати подію #@Model.Id</h1>
+            <p style="color: #666; margin-bottom: 20px;">Оновіть текстові дані для цієї події.</p>
+
+            <div class="ph-profile-section">
+                <form asp-controller="Admin" asp-action="EditEvent" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="OrganizerId" />
+
+                    <div class="mb-3" style="margin-bottom: 15px;">
+                        <label asp-for="Title" style="display: block; margin-bottom: 5px; font-weight: 500;">Назва події</label>
+                        <input asp-for="Title" class="form-control" required style="width: 100%;" />
+                        <span asp-validation-for="Title" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3" style="margin-bottom: 20px;">
+                        <label asp-for="Description" style="display: block; margin-bottom: 5px; font-weight: 500;">Опис події</label>
+                        <textarea asp-for="Description" class="form-control" rows="6" required style="width: 100%; font-family: inherit;"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 25px;">
+                        <a asp-controller="Admin" asp-action="Index" class="ph-btn-ghost">Скасувати</a>
+                        <button type="submit" class="ph-btn-dark">Зберегти зміни</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,5 +1,5 @@
 ﻿@model FinalProject.ViewModels.AdminPageViewModel
-@* Адмін-сторінка: створення події і видача ролі Organizer. *@
+@* Адмін-сторінка: створення події, видача ролі Organizer та керування існуючими подіями (CRUD). *@
 @{
     ViewData["Title"] = "Admin";
     var userName = User.Identity?.Name ?? "User";
@@ -33,7 +33,7 @@
 
             @if (TempData["AdminMessage"] != null)
             {
-                <p>@TempData["AdminMessage"]</p>
+                <p class="alert-message" style="color: #28a745; font-weight: bold; margin-bottom: 15px;">@TempData["AdminMessage"]</p>
             }
 
             <div class="ph-profile-section">
@@ -98,33 +98,71 @@
                             </tr>
                         </thead>
                         <tbody>
-                        @foreach (var user in Model.Users)
-                        {
-                            <tr>
-                                <td>@user.Id</td>
-                                <td>@user.Name</td>
-                                <td>@user.Email</td>
-                                <td>@user.Role</td>
-                                <td>
-                                    @if (user.Role == "Organizer" || user.Role == "Admin")
-                                    {
-                                        <span>Вже має роль</span>
-                                    }
-                                    else
-                                    {
-                                        <form asp-controller="Admin" asp-action="MakeOrganizer" method="post">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="userId" value="@user.Id" />
-                                            <button type="submit" class="ph-btn-ghost">Дати організатора</button>
-                                        </form>
-                                    }
-                                </td>
-                            </tr>
-                        }
+                            @foreach (var user in Model.Users)
+                            {
+                                <tr>
+                                    <td>@user.Id</td>
+                                    <td>@user.Name</td>
+                                    <td>@user.Email</td>
+                                    <td>@user.Role</td>
+                                    <td>
+                                        @if (user.Role == "Organizer" || user.Role == "Admin")
+                                        {
+                                            <span>Вже має роль</span>
+                                        }
+                                        else
+                                        {
+                                            <form asp-controller="Admin" asp-action="MakeOrganizer" method="post">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="userId" value="@user.Id" />
+                                                <button type="submit" class="ph-btn-ghost">Дати організатора</button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 }
             </div>
+
+            <div class="ph-profile-section">
+                <h2>Існуючі події</h2>
+                @if (Model.Events.Count == 0)
+                {
+                    <p>Подій у базі даних ще немає.</p>
+                }
+                else
+                {
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">Id</th>
+                                <th>Назва події</th>
+                                <th style="width: 240px; text-align: center;">Дії</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ev in Model.Events)
+                            {
+                                <tr>
+                                    <td>@ev.Id</td>
+                                    <td><strong>@ev.Title</strong></td>
+                                    <td style="text-align: center;">
+                                        <a asp-controller="Admin" asp-action="EditEvent" asp-route-id="@ev.Id" class="ph-btn-ghost" style="margin-right: 5px;">Редагувати</a>
+
+                                        <form asp-controller="Admin" asp-action="DeleteEvent" asp-route-id="@ev.Id" method="post" style="display: inline;" onsubmit="return confirm('Ви впевнені, що хочете видалити цю подію?');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="ph-btn-ghost" style="color: #dc3545; border-color: rgba(220, 53, 69, 0.2);">Видалити</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+
         </section>
     </div>
 </div>
@@ -132,7 +170,3 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 }
-
-
-
-
