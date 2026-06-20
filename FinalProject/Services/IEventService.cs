@@ -10,4 +10,6 @@ public interface IEventService
     Task<IReadOnlyList<EventDto>> GetUpcomingEvents(int count = 3);
     Task<EventDto?> GetEventById(int id);
     Task<IReadOnlyList<CategoryDto>> GetCategoriesAsync();
+    Task InvalidateEventCacheAsync(int? eventId = null);
+    Task InvalidateCategoriesCacheAsync();
 }

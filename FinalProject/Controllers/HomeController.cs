@@ -141,7 +141,7 @@ public class HomeController : Controller
         // Toggle-логіка:
         // якщо запису в SavedEvents нема -> створюємо;
         // якщо запис є -> видаляємо.
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0";
 
         var savedEvent = await _dbContext.SavedEvents
             .FirstOrDefaultAsync(currentSavedEvent => currentSavedEvent.UserId == userId && currentSavedEvent.EventId == id);
@@ -176,12 +176,12 @@ public class HomeController : Controller
         // - якщо броні нема і є місце -> бронюємо;
         // - якщо бронь є -> скасовуємо.
         // Паралельно оновлюємо Capacity у Event.
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0";
 
         var bookedEvent = await _dbContext.BookedEvents
             .FirstOrDefaultAsync(currentBookedEvent => currentBookedEvent.UserId == userId && currentBookedEvent.EventId == id);
 
-        var eventEntity = await _dbContext.Events.FirstOrDefaultAsync(currentEvent => currentEvent.Id == id);
+        var eventEntity = await _dbContext.Events.FirstOrDefaultAsync(currentEvent => currentEvent.Id == id) ?? new Event();
 
         if (bookedEvent == null)
         {
@@ -205,6 +205,10 @@ public class HomeController : Controller
         }
 
         await _dbContext.SaveChangesAsync();
+
+        // Інвалідація кешу після зміни Capacity події
+        await _eventService.InvalidateEventCacheAsync(id);
+
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -226,6 +230,9 @@ public class HomeController : Controller
         {
             _dbContext.Events.Remove(eventEntity);
             await _dbContext.SaveChangesAsync();
+
+            // Інвалідація кешу після видалення події
+            await _eventService.InvalidateEventCacheAsync(id);
         }
 
         return RedirectToAction(nameof(Index));
