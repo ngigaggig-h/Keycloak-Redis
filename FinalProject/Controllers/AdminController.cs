@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using FinalProject.Data;
 using FinalProject.Models;
+using FinalProject.Services;
 using FinalProject.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,10 +21,12 @@ namespace FinalProject.Controllers;
 public class AdminController : Controller
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly IEventService _eventService;
 
-    public AdminController(ApplicationDbContext dbContext)
+    public AdminController(ApplicationDbContext dbContext, IEventService eventService)
     {
         _dbContext = dbContext;
+        _eventService = eventService;
     }
 
     [HttpGet("")]
@@ -99,6 +102,9 @@ public class AdminController : Controller
 
         _dbContext.Events.Add(newEvent);
         await _dbContext.SaveChangesAsync(); // Зберігаємо подію
+
+        // Інвалідація кешу після створення події
+        await _eventService.InvalidateEventCacheAsync();
 
         return RedirectToAction("Index");
     }

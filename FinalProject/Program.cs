@@ -24,6 +24,11 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
+// Реєструємо Redis розподілений кеш.
+builder.Services.AddStackExchangeRedisCache(options =>
+    options.Configuration = builder.Configuration.GetConnectionString("Redis")
+    );
+
 // Реєструємо сервіси бізнес-логіки в DI.
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IHashService, SimpleHashService>();
