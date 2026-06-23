@@ -1,37 +1,3 @@
-﻿@model FinalProject.ViewModels.EventsChunkViewModel
-@* Частковий шаблон для підвантаження нових карток подій. *@
+@model FinalProject.ViewModels.EventsChunkViewModel
 
-@foreach (var eventCard in Model.Events)
-{
-    <article class="ph-event-row">
-        <img class="ph-event-thumb"
-             src="@eventCard.ImageUrl"
-             alt="@eventCard.Title" />
-        <div class="ph-event-body">
-            <div class="ph-event-title-row">
-                <div class="ph-event-title">@eventCard.Title</div>
-                <span class="ph-event-category">@eventCard.CategoryName</span>
-            </div>
-            <div class="ph-event-desc">@eventCard.TitleDescription</div>
-            <div class="ph-event-foot">
-                <div class="ph-event-meta">
-                    <span class="ph-meta-chip ph-meta-chip-time">@eventCard.StartAt.ToString("dd MMM yyyy")</span>
-                    <span class="ph-meta-chip ph-meta-chip-time">@eventCard.StartAt.ToString("HH:mm")</span>
-                    <span class="ph-meta-chip ph-meta-dot">@eventCard.Location</span>
-                    <span class="ph-meta-chip">Місць: @eventCard.Capacity</span>
-                </div>
-                <a class="ph-details-btn"
-                   asp-controller="Home"
-                   asp-action="Details"
-                   asp-route-id="@eventCard.Id">Детальніше →</a>
-            </div>
-        </div>
-    </article>
-}
-
-<div class="ph-chunk-meta"
-     data-next-skip="@Model.NextSkip"
-     data-has-more="@Model.HasMore.ToString().ToLowerInvariant()"></div>
-
-
-
+@await Html.PartialAsync("~/Views/Shared/EventsChunk.cshtml", Model)

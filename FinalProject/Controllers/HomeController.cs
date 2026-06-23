@@ -19,6 +19,8 @@ namespace FinalProject.Controllers;
 // - видалення події (для ролей Admin/Organizer).
 public class HomeController : Controller
 {
+    private const int PageSize = 10;
+
     private readonly IEventService _eventService;
     private readonly ApplicationDbContext _dbContext;
 
@@ -28,13 +30,12 @@ public class HomeController : Controller
         _dbContext = dbContext;
     }
 
-    public async Task<IActionResult> Index(int skip = 0, int take = 8, string? searching = null, int[]? categoryIds = null, string? sortBy = null, bool onlyUpcoming = false)
+    public async Task<IActionResult> Index(int skip = 0, int take = PageSize, string? searching = null, int[]? categoryIds = null, string? sortBy = null, bool onlyUpcoming = false)
     {
         // Головна сторінка з пагінацією і пошуком.
         // skip/take приходять із query string.
         if (skip < 0) skip = 0;
-        if (take < 8) take = 8;
-        if (take > 64) take = 64;
+        take = PageSize;
 
         var normalizedSortBy = string.IsNullOrWhiteSpace(sortBy) ? "date" : sortBy;
         var selectedCategoryIds = categoryIds?.Distinct().ToArray() ?? [];
@@ -65,18 +66,14 @@ public class HomeController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> LoadMore(int skip = 0, int take = 8, string? searching = null, int[]? categoryIds = null, string? sortBy = null, bool onlyUpcoming = false)
+    public async Task<IActionResult> LoadMore(int skip = 0, int take = PageSize, string? searching = null, int[]? categoryIds = null, string? sortBy = null, bool onlyUpcoming = false)
     {
         // Дія для кнопки "Завантажити ще".
         // Повертає не повну сторінку, а partial view з наступною порцією карток.
         if (skip < 0) 
             skip = 0;
 
-        if (take < 1) 
-            take = 8;
-
-        if (take > 64) 
-            take = 64;
+        take = PageSize;
 
         var normalizedSortBy = string.IsNullOrWhiteSpace(sortBy) ? "date" : sortBy;
         var selectedCategoryIds = categoryIds?.Distinct().ToArray() ?? [];
@@ -90,7 +87,7 @@ public class HomeController : Controller
             HasMore = (skip + take) < totalEventsCount
         };
 
-        return PartialView("EventsChunk", chunkModel);
+        return PartialView("~/Views/Shared/EventsChunk.cshtml", chunkModel);
     }
 
     [HttpGet]
@@ -142,11 +139,18 @@ public class HomeController : Controller
         // якщо запису в SavedEvents нема -> створюємо;
         // якщо запис є -> видаляємо.
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Challenge();
+        }
 
         var savedEvent = await _dbContext.SavedEvents
             .FirstOrDefaultAsync(currentSavedEvent => currentSavedEvent.UserId == userId && currentSavedEvent.EventId == id);
 
-        if (savedEvent == null)
+        var isSaved = savedEvent is null;
+        var message = isSaved ? "Подію збережено" : "Подію прибрано зі збережених";
+
+        if (isSaved)
         {
             _dbContext.SavedEvents.Add(new SavedEvent
             {
@@ -154,16 +158,25 @@ public class HomeController : Controller
                 EventId = id,
                 SavedAt = DateTime.UtcNow
             });
-            TempData["ToastMessage"] = "Подію збережено";
         }
         else
         {
-            _dbContext.SavedEvents.Remove(savedEvent);
-            TempData["ToastMessage"] = "Подію прибрано зі збережених";
+            _dbContext.SavedEvents.Remove(savedEvent!);
         }
 
         await _dbContext.SaveChangesAsync();
 
+        if (IsAjaxRequest())
+        {
+            return Json(new
+            {
+                isSaved,
+                buttonText = isSaved ? "Видалити зі збереженого" : "Зберегти",
+                message
+            });
+        }
+
+        TempData["ToastMessage"] = message;
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -177,13 +190,25 @@ public class HomeController : Controller
         // - якщо бронь є -> скасовуємо.
         // Паралельно оновлюємо Capacity у Event.
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Challenge();
+        }
 
         var bookedEvent = await _dbContext.BookedEvents
             .FirstOrDefaultAsync(currentBookedEvent => currentBookedEvent.UserId == userId && currentBookedEvent.EventId == id);
 
         var eventEntity = await _dbContext.Events.FirstOrDefaultAsync(currentEvent => currentEvent.Id == id);
 
-        if (bookedEvent == null)
+        if (eventEntity == null)
+        {
+            return NotFound();
+        }
+
+        var isBooked = bookedEvent == null;
+        var message = string.Empty;
+
+        if (isBooked)
         {
             if (eventEntity.Capacity > 0 && eventEntity.StartAt > DateTime.UtcNow)
             {
@@ -194,17 +219,36 @@ public class HomeController : Controller
                     BookedAt = DateTime.UtcNow
                 });
                 eventEntity.Capacity -= 1;
-                TempData["ToastMessage"] = "Місце успішно заброньовано";
+                message = "Місце успішно заброньовано";
+            }
+            else
+            {
+                isBooked = false;
+                message = "На цю подію вже не можна забронювати місце";
             }
         }
         else
         {
-            _dbContext.BookedEvents.Remove(bookedEvent);
+            _dbContext.BookedEvents.Remove(bookedEvent!);
             eventEntity.Capacity += 1;
-            TempData["ToastMessage"] = "Бронювання скасовано";
+            message = "Бронювання скасовано";
         }
 
         await _dbContext.SaveChangesAsync();
+
+        if (IsAjaxRequest())
+        {
+            return Json(new
+            {
+                isBooked,
+                capacity = eventEntity.Capacity,
+                canBook = isBooked || (eventEntity.Capacity > 0 && eventEntity.StartAt > DateTime.UtcNow),
+                buttonText = isBooked ? "Скасувати бронювання" : "Забронювати місце",
+                message
+            });
+        }
+
+        TempData["ToastMessage"] = message;
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -256,5 +300,11 @@ public class HomeController : Controller
             Location = eventData.Location,
             StartAt = eventData.StartAt
         };
+    }
+
+    private bool IsAjaxRequest()
+    {
+        return Request.Headers.XRequestedWith == "XMLHttpRequest"
+            || Request.Headers.Accept.Any(value => value?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true);
     }
 }

@@ -16,7 +16,7 @@ public class EventService : IEventService
         _dbContext = dbContext;
     }
 
-    public async Task<IReadOnlyList<EventDto>> GetLatestEventsAsync(int skip = 0, int take = 8, string? searching = null, IReadOnlyCollection<int>? categoryIds = null, string? sortBy = null, bool onlyUpcoming = false)
+    public async Task<IReadOnlyList<EventDto>> GetLatestEventsAsync(int skip = 0, int take = 10, string? searching = null, IReadOnlyCollection<int>? categoryIds = null, string? sortBy = null, bool onlyUpcoming = false)
     {
         // Базовий запит списку подій для головної.
         // Далі до нього додаємо пошук, пагінацію і маппінг у DTO.

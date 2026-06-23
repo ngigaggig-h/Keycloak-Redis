@@ -5,11 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - PodiiHub</title>
     <script type="importmap"></script>
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem("podiiHubTheme");
+            const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+            document.documentElement.dataset.theme = savedTheme || (prefersDark ? "dark" : "light");
+        })();
+    </script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/FinalProject.styles.css" asp-append-version="true" />
 </head>
 <body>
+    <button type="button" class="ph-theme-toggle" id="themeToggle" aria-label="Перемкнути тему" title="Перемкнути тему">
+        <span class="ph-theme-toggle-icon" aria-hidden="true"></span>
+    </button>
+
     <main role="main">
         @RenderBody()
     </main>
@@ -17,6 +28,26 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+            const button = document.getElementById("themeToggle");
+            if (!button) return;
+
+            function syncButton(theme) {
+                button.classList.toggle("is-dark", theme === "dark");
+                button.setAttribute("aria-pressed", String(theme === "dark"));
+            }
+
+            syncButton(document.documentElement.dataset.theme || "light");
+
+            button.addEventListener("click", function () {
+                const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+                document.documentElement.dataset.theme = nextTheme;
+                localStorage.setItem("podiiHubTheme", nextTheme);
+                syncButton(nextTheme);
+            });
+        })();
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

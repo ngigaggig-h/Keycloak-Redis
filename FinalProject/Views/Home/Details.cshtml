@@ -56,7 +56,7 @@
                     <span class="ph-meta-chip ph-meta-chip-time">@Model.StartAt.ToString("dd MMM yyyy")</span>
                     <span class="ph-meta-chip ph-meta-chip-time">@Model.StartAt.ToString("HH:mm")</span>
                     <span class="ph-meta-chip">@Model.Location</span>
-                    <span class="ph-meta-chip">Місць: @Model.Capacity</span>
+                    <span class="ph-meta-chip" id="capacityChip">Місць: <span id="capacityValue">@Model.Capacity</span></span>
                 </div>
                 <p class="ph-details-description">@Model.Description</p>
                 <div class="ph-details-actions">
@@ -64,18 +64,18 @@
                     <div class="ph-details-actions-right">
                     @if (User.Identity?.IsAuthenticated == true)
                     {
-                        <form asp-controller="Home" asp-action="ToggleSave" method="post" class="ph-save-form">
+                        <form asp-controller="Home" asp-action="ToggleSave" method="post" class="ph-save-form js-details-action" data-action-kind="save">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@Model.Id" />
-                            <button type="submit" class="ph-save-btn">@(Model.IsSaved ? "Видалити зі збереженого" : "Зберегти")</button>
+                            <button type="submit" class="ph-save-btn" id="saveButton">@(Model.IsSaved ? "Видалити зі збереженого" : "Зберегти")</button>
                         </form>
 
                         @if (Model.IsBooked || (Model.Capacity > 0 && canBookByDate))
                         {
-                            <form asp-controller="Home" asp-action="ToggleBooking" method="post" class="ph-save-form">
+                            <form asp-controller="Home" asp-action="ToggleBooking" method="post" class="ph-save-form js-details-action" data-action-kind="booking">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@Model.Id" />
-                                <button type="submit" class="ph-book-btn">@(Model.IsBooked ? "Скасувати бронювання" : "Забронювати місце")</button>
+                                <button type="submit" class="ph-book-btn" id="bookingButton">@(Model.IsBooked ? "Скасувати бронювання" : "Забронювати місце")</button>
                             </form>
                         }
                     }
@@ -100,6 +100,77 @@
 }
 
 @section Scripts {
+    <script>
+        (function () {
+            function showToast(message) {
+                if (!message) return;
+                document.getElementById("phToast")?.remove();
+
+                const toast = document.createElement("div");
+                toast.id = "phToast";
+                toast.className = "ph-toast";
+                toast.textContent = message;
+                document.body.appendChild(toast);
+
+                setTimeout(function () {
+                    toast.classList.add("hide");
+                }, 2200);
+                setTimeout(function () {
+                    toast.remove();
+                }, 3000);
+            }
+
+            document.querySelectorAll(".js-details-action").forEach(function (form) {
+                form.addEventListener("submit", async function (event) {
+                    event.preventDefault();
+
+                    const button = form.querySelector("button[type='submit']");
+                    if (!button || button.disabled) return;
+
+                    const originalText = button.textContent;
+                    button.disabled = true;
+                    button.textContent = "Зачекайте...";
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: "POST",
+                            body: new FormData(form),
+                            headers: {
+                                "Accept": "application/json",
+                                "X-Requested-With": "XMLHttpRequest"
+                            }
+                        });
+
+                        if (!response.ok) throw new Error("Request failed");
+
+                        const result = await response.json();
+                        button.textContent = result.buttonText || originalText;
+
+                        if (form.dataset.actionKind === "booking") {
+                            const capacityValue = document.getElementById("capacityValue");
+                            if (capacityValue && Number.isInteger(result.capacity)) {
+                                capacityValue.textContent = result.capacity;
+                            }
+
+                            if (result.canBook === false) {
+                                form.remove();
+                            }
+                        }
+
+                        showToast(result.message);
+                    } catch {
+                        button.textContent = originalText;
+                        showToast("Не вдалося виконати дію. Спробуйте ще раз.");
+                    } finally {
+                        if (document.body.contains(button)) {
+                            button.disabled = false;
+                        }
+                    }
+                });
+            });
+        })();
+    </script>
+
     @if (!string.IsNullOrWhiteSpace(toastMessage))
     {
         <script>

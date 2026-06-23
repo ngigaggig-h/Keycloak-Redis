@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Головна";
     var userName = User.Identity?.Name ?? "User";
+    var selectedCategoryId = Model.SelectedCategoryIds.FirstOrDefault();
 }
 
 <div class="ph-wrap">
@@ -47,23 +48,34 @@
             <div class="ph-search-input-wrap">
                 <input type="text" name="searching" value="@Model.SearchQuery" placeholder="Пошук подій за назвою..." />
             </div>
+            <div class="ph-select-wrap">
+                <select name="categoryIds" aria-label="Категорія">
+                    <option value="">Усі категорії</option>
+                    @foreach (var category in Model.Categories)
+                    {
+                        <option value="@category.Id" selected="@(selectedCategoryId == category.Id)">@category.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="ph-select-wrap">
+                <select name="sortBy" aria-label="Сортування">
+                    <option value="date" selected="@(Model.SortBy == "date")">За датою</option>
+                    <option value="title" selected="@(Model.SortBy == "title")">За назвою</option>
+                    <option value="capacity" selected="@(Model.SortBy == "capacity")">За місцями</option>
+                </select>
+            </div>
             <div class="ph-search-actions">
                 <button class="ph-btn-search" type="submit">Пошук</button>
                 <button class="ph-btn-filter" type="button" id="openFiltersBtn">Фільтри</button>
             </div>
-            <input type="hidden" name="sortBy" value="@Model.SortBy" />
             <input type="hidden" name="onlyUpcoming" value="@Model.OnlyUpcoming.ToString().ToLowerInvariant()" />
-            @foreach (var selectedCategoryId in Model.SelectedCategoryIds)
-            {
-                <input type="hidden" name="categoryIds" value="@selectedCategoryId" />
-            }
         </form>
 
         <main class="ph-main">
             <p class="ph-section-label">Останні події</p>
 
             <div id="eventList" class="ph-event-list">
-                @await Html.PartialAsync("EventsChunk", new FinalProject.ViewModels.EventsChunkViewModel
+                @await Html.PartialAsync("~/Views/Shared/EventsChunk.cshtml", new FinalProject.ViewModels.EventsChunkViewModel
                 {
                     Events = Model.Events,
                     NextSkip = Model.NextSkip,
@@ -87,6 +99,7 @@
                     </button>
                 </div>
             }
+            <div id="loadMoreSentinel" class="ph-load-more-sentinel" aria-hidden="true"></div>
         </main>
 
         <aside class="ph-sidebar">
@@ -221,18 +234,17 @@
                 }
             });
 
-            if (!loadMoreBtn || !eventList) return;
+            if (loadMoreBtn && eventList) {
+                let loading = false;
 
-            let loading = false;
-
-            loadMoreBtn.addEventListener("click", async function () {
+                loadMoreBtn.addEventListener("click", async function () {
                 if (loading) return;
                 loading = true;
                 loadMoreBtn.disabled = true;
                 loadMoreBtn.textContent = "Завантаження...";
 
                 const skip = loadMoreBtn.dataset.skip || "0";
-                const take = loadMoreBtn.dataset.take || "8";
+                const take = loadMoreBtn.dataset.take || "10";
                 const searching = loadMoreBtn.dataset.searching || "";
                 const categoryIds = (loadMoreBtn.dataset.categoryIds || "")
                     .split(",")
@@ -280,7 +292,19 @@
                 } finally {
                     loading = false;
                 }
-            });
+                });
+
+                if ("IntersectionObserver" in window) {
+                    const sentinel = document.getElementById("loadMoreSentinel");
+                    const observer = new IntersectionObserver(function (entries) {
+                        if (entries.some(function (entry) { return entry.isIntersecting; }) && document.body.contains(loadMoreBtn)) {
+                            loadMoreBtn.click();
+                        }
+                    }, { rootMargin: "320px 0px" });
+
+                    if (sentinel) observer.observe(sentinel);
+                }
+            }
 
             document.querySelectorAll(".ph-modal-choice-chip input").forEach(function (input) {
                 input.addEventListener("change", function () {

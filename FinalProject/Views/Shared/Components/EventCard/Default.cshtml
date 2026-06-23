@@ -1,0 +1,26 @@
+@model FinalProject.ViewModels.HomeEventCardViewModel
+
+<article class="ph-event-row">
+    <img class="ph-event-thumb"
+         src="@Model.ImageUrl"
+         alt="@Model.Title" />
+    <div class="ph-event-body">
+        <div class="ph-event-title-row">
+            <div class="ph-event-title">@Model.Title</div>
+            <span class="ph-event-category">@Model.CategoryName</span>
+        </div>
+        <div class="ph-event-desc">@Model.TitleDescription</div>
+        <div class="ph-event-foot">
+            <div class="ph-event-meta">
+                <span class="ph-meta-chip ph-meta-chip-time">@Model.StartAt.ToString("dd MMM yyyy")</span>
+                <span class="ph-meta-chip ph-meta-chip-time">@Model.StartAt.ToString("HH:mm")</span>
+                <span class="ph-meta-chip ph-meta-dot">@Model.Location</span>
+                <span class="ph-meta-chip">Місць: @Model.Capacity</span>
+            </div>
+            <a class="ph-details-btn"
+               asp-controller="Home"
+               asp-action="Details"
+               asp-route-id="@Model.Id">Детальніше</a>
+        </div>
+    </div>
+</article>
