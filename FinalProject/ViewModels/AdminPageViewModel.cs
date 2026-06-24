@@ -1,9 +1,8 @@
 using System.ComponentModel.DataAnnotations;
+using FinalProject.Models; // Обов'язково для зв'язку з моделлю Event
 
 namespace FinalProject.ViewModels;
 
-// ViewModel сторінки /admin:
-// поля для створення події + список користувачів.
 public class AdminPageViewModel
 {
     [Required]
@@ -37,11 +36,13 @@ public class AdminPageViewModel
 
     public List<CategoryFilterOptionViewModel> Categories { get; set; } = new();
     public List<AdminUserRowViewModel> Users { get; set; } = new();
+
+    // ОПРАВЛЕННЯ: Саме цього рядка зараз бракує у твоєму файлі!
+    public List<Event> Events { get; set; } = new();
 }
 
 public class AdminUserRowViewModel
 {
-    // Один рядок у таблиці користувачів на адмін-сторінці.
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
